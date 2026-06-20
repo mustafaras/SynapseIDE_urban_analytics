@@ -7,8 +7,7 @@ import { MapAttributeWorkflowPanel } from "../table/MapAttributeWorkflowPanel";
 import { MapBottomPanelScrollBody, type MapBottomPanelTask, MapBottomPanelTasksBody } from "../bottom";
 import { MapSelectionTools, type SelectionDragTool } from "../MapSelectionTools";
 import { ScientificQAPanel } from "../ScientificQAPanel";
-import { LayerInspector, type MapInspectorHostContext } from "../inspector";
-import type { LayerStyleUpdate } from "../inspector/style/legendContract";
+import type { MapInspectorHostContext } from "../inspector";
 import { type MapProblemRow, MapProblemsPanel } from "../problems";
 import { MapPanelErrorBoundary } from "../MapPanelErrorBoundary";
 import { MapPerformanceDiagnosticsPanel } from "../MapPerformanceDiagnosticsPanel";
@@ -435,7 +434,6 @@ interface MapRightDockBodyContentProps {
   setSelectionStatsSummary: React.Dispatch<React.SetStateAction<SelectionStatisticsSummary[] | null>>;
   openRightDockPanel: (panel: "attributes", announcement: string, source: "panel-tab", detail?: string) => void;
   inspectorContext: MapInspectorHostContext;
-  onApplyLayerStyle?: (layerId: string, update: LayerStyleUpdate) => void;
   publishDataExportElement: React.ReactNode;
   publishFigureElement: React.ReactNode;
   publishOfflinePackageElement: React.ReactNode;
@@ -511,7 +509,6 @@ export const MapRightDockBodyContent: React.FC<MapRightDockBodyContentProps> = (
   setSelectionStatsSummary,
   openRightDockPanel,
   inspectorContext,
-  onApplyLayerStyle,
   publishDataExportElement,
   publishFigureElement,
   publishOfflinePackageElement,
@@ -529,13 +526,9 @@ export const MapRightDockBodyContent: React.FC<MapRightDockBodyContentProps> = (
     if (inspectorContext.kind === "layer") {
       return (
         <div data-testid="map-right-dock-inspector-body" style={{ height: "100%", minHeight: 0 }}>
-          <LayerInspector
-            layer={inspectorContext.layer}
-            sourceHandle={inspectorContext.sourceHandle ?? null}
-            onClose={handleCloseRightDockHost}
-            {...(onApplyLayerStyle ? { onApplyStyle: onApplyLayerStyle } : {})}
-            presentation="embedded"
-            showHeader={false}
+          <RightDockEmptyState
+            title="Layer inspector open"
+            description="Use the inspector rail to review source, schema, CRS, QA, style, lineage, and report readiness for the selected layer."
           />
         </div>
       );

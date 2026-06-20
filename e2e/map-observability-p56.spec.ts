@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { openMapCommand } from "./helpers/mapExplorer";
 import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
 async function seedRecoveryLayer(page: Page): Promise<void> {
@@ -41,25 +42,6 @@ async function seedRecoveryLayer(page: Page): Promise<void> {
   });
 }
 
-async function openAdvancedCommand(
-  page: Page,
-  mapExplorer: ReturnType<Page["getByRole"]>,
-  directName: RegExp,
-  menuName: RegExp,
-): Promise<void> {
-  const directButton = mapExplorer.getByRole("button", { name: directName }).first();
-  if (await directButton.isVisible({ timeout: 1_000 }).catch(() => false)) {
-    await triggerDomClick(directButton);
-    return;
-  }
-  await triggerDomClick(
-    mapExplorer.getByRole("button", { name: "Scientific QA, 3D sync, density, and command controls" }),
-  );
-  await triggerDomClick(
-    page.getByRole("menu", { name: "Advanced commands" }).getByRole("menuitem", { name: menuName }),
-  );
-}
-
 async function induceWorkerFailure(page: Page): Promise<string> {
   const jobId = await page.evaluate(async () => {
     const { analyticsWorkerPool } = await import("/src/workers/pool/tasks.ts");
@@ -95,13 +77,15 @@ test.describe("Prompt 56 — Map observability and recovery", () => {
 
     await induceWorkerFailure(page);
 
-    await openAdvancedCommand(page, mapExplorer, /Diagnostics/i, /diagnostics/i);
+    await openMapCommand(page, mapExplorer, /Diagnostics/i, /diagnostics/i);
     const diagnostics = page.getByTestId("map-performance-diagnostics");
     await expect(diagnostics).toBeVisible();
     await expect(diagnostics.getByTestId("map-observability-log")).toContainText("worker.failure");
     await expect(diagnostics.getByTestId("map-observability-log")).toContainText("P56 forced worker failure");
-    await expect(diagnostics.getByTestId("map-worker-recovery-retry")).toBeVisible();
-    await triggerDomClick(diagnostics.getByTestId("map-worker-recovery-retry"));
+    const retryButton = diagnostics.getByTestId("map-worker-recovery-retry-status");
+    await retryButton.scrollIntoViewIfNeeded();
+    await expect(retryButton).toBeVisible();
+    await triggerDomClick(retryButton);
 
     await expect(mapExplorer).toBeVisible();
     await expect(page.getByRole("list", { name: "Layer list" })).toContainText("E2E P56 Recovery Layer");
@@ -110,7 +94,7 @@ test.describe("Prompt 56 — Map observability and recovery", () => {
     await page.evaluate(() => {
       (window as typeof window & { __MAP_E2E_FORCE_MAP_DIAGNOSTICS_CRASH__?: boolean }).__MAP_E2E_FORCE_MAP_DIAGNOSTICS_CRASH__ = true;
     });
-    await openAdvancedCommand(page, mapExplorer, /Diagnostics/i, /diagnostics/i);
+    await openMapCommand(page, mapExplorer, /Diagnostics/i, /diagnostics/i);
     const boundary = page.getByTestId("map-panel-error-boundary");
     await expect(boundary).toBeVisible();
     await expect(boundary).toContainText("Render diagnostics panel recovered");

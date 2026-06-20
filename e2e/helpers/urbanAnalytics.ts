@@ -48,16 +48,17 @@ export async function openUrbanAnalyticsWorkbench(page: Page): Promise<Locator> 
   await expect(openAnalyticsButton).toBeVisible();
   await openAnalyticsButton.click();
 
+  const urbanModal = page.getByRole("dialog", { name: "Urban Analytics Workbench" });
   const welcomeDialog = page
     .getByRole("dialog")
     .filter({ has: page.getByRole("button", { name: /Start Workbench/i }) })
     .first();
-  await expect(welcomeDialog).toBeVisible();
-  await welcomeDialog.getByRole("button", { name: /Start Workbench/i }).click();
-  await expect(welcomeDialog).toBeHidden();
+  if (await welcomeDialog.isVisible({ timeout: 1_000 }).catch(() => false)) {
+    await welcomeDialog.getByRole("button", { name: /Start Workbench/i }).click();
+    await expect(welcomeDialog).toBeHidden();
+  }
 
   await expect(page.getByTestId("urban-analytics-modal-loading")).toBeHidden({ timeout: 60000 });
-  const urbanModal = page.getByRole("dialog", { name: "Urban Analytics Workbench" });
   await expect(urbanModal).toBeVisible({ timeout: 60000 });
 
   const closeDetailPanelButton = urbanModal.getByRole("button", { name: "Close detail panel" });

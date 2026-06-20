@@ -75,10 +75,10 @@ test.describe("Map Explorer stability", () => {
 
     await page.setViewportSize({ width: 1440, height: 960 });
     await resetWorkbenchState(page);
-    const urbanModal = await openUrbanAnalyticsWorkbench(page);
 
     for (let cycle = 1; cycle <= 6; cycle += 1) {
       await page.setViewportSize(cycle % 2 === 0 ? { width: 920, height: 760 } : { width: 1440, height: 960 });
+      const urbanModal = await openUrbanAnalyticsWorkbench(page);
       await triggerDomClick(urbanModal.getByRole("button", { name: "Open Map Explorer (Ctrl+Shift+M)" }));
 
       const mapExplorer = await waitForMapExplorerDialog(page);

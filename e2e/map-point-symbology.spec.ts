@@ -1,6 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { importLocalMapFileWithPreflight } from "./helpers/mapImport";
-import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
+import {
+  openLayerActionMenu,
+  openUrbanAnalyticsWorkbench,
+  resetWorkbenchState,
+  triggerDomClick,
+} from "./helpers/urbanAnalytics";
 
 function createPointSymbologyFixture() {
   const features = Array.from({ length: 24 }, (_, index) => {
@@ -41,24 +46,28 @@ test.describe("Map Explorer point symbology", () => {
     await expect(mapExplorer).toBeVisible();
     await triggerDomClick(page.getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i }).first());
 
-    await triggerDomClick(page.getByRole("button", {
-      name: /Import GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, and GPX files|Open spatial data import options/i,
-    }));
+    await triggerDomClick(mapExplorer.getByTestId("activity-btn-data"));
+    await expect(mapExplorer.getByTestId("catalog-browse-source")).toBeVisible();
+    await triggerDomClick(mapExplorer.getByTestId("catalog-browse-source"));
     const importHub = page.getByRole("dialog", { name: "Spatial data import hub" });
     await expect(importHub).toBeVisible();
 
     await importLocalMapFileWithPreflight(page, createPointSymbologyFixture());
 
     await expect(page.getByTestId("toast").filter({ hasText: /Imported point-symbols \(24 features\)\./i }).first()).toBeVisible();
+    await triggerDomClick(mapExplorer.getByTestId("activity-btn-layers"));
     await expect(page.getByRole("list", { name: "Layer list" })).toContainText("point-symbols");
 
-    await triggerDomClick(page.getByRole("button", { name: "Open symbology panel for point-symbols" }));
-    const symbology = page.getByRole("dialog", { name: "Point symbology configuration" });
+    const layerRow = page.getByRole("listitem", { name: /Layer: point-symbols/i });
+    await openLayerActionMenu(layerRow);
+    await triggerDomClick(layerRow.getByRole("menuitem", { name: /^Style point-symbols$/ }));
+    const symbology = mapExplorer.getByTestId("map-style-symbols-panel");
     await expect(symbology).toBeVisible();
     await expect(symbology).toContainText("point-symbols");
 
-    await expect(symbology.getByRole("button", { name: "Heatmap" })).toHaveAttribute("aria-pressed", "true");
-    await expect(symbology.getByLabel("Weight field")).toContainText("magnitude");
+    await triggerDomClick(symbology.getByTestId("map-style-symbol-mode-heatmap"));
+    await expect(symbology.getByTestId("map-style-symbol-mode-heatmap")).toHaveAttribute("aria-pressed", "true");
+    await expect(symbology.getByLabel("Weight field")).toHaveValue("magnitude");
     await symbology.getByLabel("Gradient").selectOption("plasma");
     await expect(symbology.getByLabel("Gradient")).toHaveValue("plasma");
     await expect(symbology.getByLabel(/Radius:/)).toBeVisible();
@@ -67,8 +76,8 @@ test.describe("Map Explorer point symbology", () => {
     await expect(symbology.getByLabel(/Transition zoom:/)).toBeVisible();
     await expect(symbology.getByLabel("Scale heatmap radius with zoom")).toBeChecked();
 
-    await triggerDomClick(symbology.getByRole("button", { name: "Proportional" }));
-    await expect(symbology.getByRole("button", { name: "Proportional" })).toHaveAttribute("aria-pressed", "true");
+    await triggerDomClick(symbology.getByTestId("map-style-symbol-mode-proportional"));
+    await expect(symbology.getByTestId("map-style-symbol-mode-proportional")).toHaveAttribute("aria-pressed", "true");
     await expect(symbology.getByLabel("Value field")).toHaveValue("magnitude");
     await expect(symbology.getByLabel(/Min radius:/)).toBeVisible();
     await expect(symbology.getByLabel(/Max radius:/)).toBeVisible();
@@ -79,8 +88,8 @@ test.describe("Map Explorer point symbology", () => {
     await triggerDomClick(symbology.getByLabel("Cluster points at low zoom"));
     await expect(symbology.getByLabel(/Cluster max zoom:/)).toBeVisible();
 
-    await triggerDomClick(symbology.getByRole("button", { name: "Graduated" }));
-    await expect(symbology.getByRole("button", { name: "Graduated" })).toHaveAttribute("aria-pressed", "true");
+    await triggerDomClick(symbology.getByTestId("map-style-symbol-mode-graduated"));
+    await expect(symbology.getByTestId("map-style-symbol-mode-graduated")).toHaveAttribute("aria-pressed", "true");
     await symbology.getByLabel("Classification").selectOption("natural-breaks");
     await expect(symbology.getByLabel("Classification")).toHaveValue("natural-breaks");
     await symbology.getByLabel("Classes").selectOption("5");

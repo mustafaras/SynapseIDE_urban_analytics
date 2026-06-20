@@ -33,6 +33,12 @@ mirror is [`STATE.json`](./STATE.json); keep them in sync. Newest entries at the
 | 2026-06-20 | MFP-19 | in_progress | (stage A) | gis | proofs/MFP-19/ | STAGE A only (1 of 5): collapsed 3 passthroughs -> MapExplorerModal.tsx re-exports directly from MapExplorerModalRuntimeCore; deleted MapExplorerModalRoot + MapExplorerModalRuntime (imported only by each other). No behavioural change. typecheck+lint clean; vitest map + MapExplorerModal.dispatch = 99 files/941 passed. STAGES B-E (View-prop grouping, 51 toast*->reportError, shell error boundary, lazy heavy imports) pending — they mutate behaviour and need npm run test:e2e green per stage (browser-capable env; Chromium 1217 missing here). map-layer-inspector single-mount fix folded into STAGE B. |
 | 2026-06-20 | MFP-21 | done | (branch) | general | proofs/MFP-21/ | Branding single source of truth: new src/constants/brand.ts (OWNER-CONFIRMED full='Synapse IDE — GIS & Urban Analytics Workbench', short='Synapse IDE', version='0.9.0', no tagline). App.tsx 4 shell literals -> BRAND.short, document.title -> BRAND.full, UA fallback -> BRAND.short. WelcomeModal title from BRAND (IDE-led, GIS-inclusive; #welcome-modal-title + MFP-14 intact). UrbanAnalyticsModal kept 'Urban Analytics Workbench' (module name + e2e accessible-name contract). typecheck+lint clean; WelcomeModal.a11y 1/1; REAL-CHROMIUM welcome-after.png. Unblocks MFP-22. |
 | 2026-06-20 | MFP-22 | done | (branch) | release | proofs/MFP-22/ | Release/publish assets (OWNER-CONFIRMED name + version 0.9.0). index.html <title> 'Coder App' -> BRAND.full (&amp;); favicon /vite.svg -> /favicon.svg (new public/favicon.svg original mark); added description/theme-color/og:*/twitter:* meta; added public/og-image.png (1200x630 share card via chromium-1194). package.json name 'synapse-ide-urban-analytics-workbench' + version 0.9.0; BRAND.version in sync. Static <title> === runtime document.title (no flicker). typecheck+lint clean; npm run build exit 0; dist/index.html verified (no 'Coder App'/'vite.svg'; favicon.svg + og-image.png shipped). e2e-a11y ENV-BLOCKED (head-only change) — substitute + re-run note. Screenshots tab-title/share-preview/favicon. FINAL pack item. |
+| 2026-06-20 | MFP-06 | done | (local) | a11y | proofs/MFP-06/ | Final browser-capable proof captured: `npm run test:e2e:a11y` passed 12/12. Removed the previous env-blocked caveat from STATE. |
+| 2026-06-20 | MFP-13 | done | (local) | a11y | proofs/MFP-13/ | Final browser-capable proof captured: `npm run test:e2e:a11y` passed 12/12. Removed the previous env-blocked caveat from STATE. |
+| 2026-06-20 | MFP-14 | done | (local) | a11y | proofs/MFP-14/ | Final browser-capable proof captured: `npm run test:e2e:a11y` passed 12/12, including the dialog-name assertion. Removed the previous env-blocked caveat from STATE. |
+| 2026-06-20 | MFP-19 | done | (local) | rc | proofs/MFP-19/ | Stages B-E completed: grouped runtime view props, single-mounted `map-layer-inspector`, routed Core error paths through `reportError`, added the shell error boundary, and lazy-loaded heavy map modules off the open path. Proofs captured: typecheck, perf budgets, a11y, map Vitest, analytics, build, functional E2E, and `validate:rc` green. |
+| 2026-06-20 | MFP-20 | done | (local) | rc | proofs/MFP-20/ | Prior owner-waived RC residual is retired. `npm run validate:rc` exits 0; functional E2E passes 83/83 by default with `@real-model` capability tests gated behind `RUN_REAL_MODELS=1`. |
+| 2026-06-20 | MFP-22 | done | (local) | release | proofs/MFP-22/ | Final release gate green: `npm run validate:rc` exits 0 and real `npm run test:e2e:a11y` passes 12/12. Version remains 0.9.0 because no owner decision to cut 1.0 was provided. |
 
 ## How to add a row (when you run a prompt)
 1. Run the prompt via the **modal-fix** skill (trigger, e.g. `P1`).
@@ -45,9 +51,9 @@ mirror is [`STATE.json`](./STATE.json); keep them in sync. Newest entries at the
    whose gate failed or whose proofs are missing.
 
 ## Release checklist (all must be `verified`)
-- [ ] Phase 0: MFP-01, MFP-08, MFP-09
-- [ ] Phase 1: MFP-02, MFP-03, MFP-04, MFP-05, MFP-06, MFP-07
-- [ ] Phase 2: MFP-10, MFP-11, MFP-12, MFP-13, MFP-14, MFP-15, MFP-17, MFP-18, MFP-20, MFP-21, MFP-22
-- [ ] Phase 3: MFP-16, MFP-19
-- [ ] `npm run validate:rc` green
-- [ ] Branding confirmed with owner (MFP-21/MFP-22)
+- [x] Phase 0: MFP-01, MFP-08, MFP-09
+- [x] Phase 1: MFP-02, MFP-03, MFP-04, MFP-05, MFP-06, MFP-07
+- [x] Phase 2: MFP-10, MFP-11, MFP-12, MFP-13, MFP-14, MFP-15, MFP-17, MFP-18, MFP-20, MFP-21, MFP-22
+- [x] Phase 3: MFP-16, MFP-19
+- [x] `npm run validate:rc` green
+- [x] Branding confirmed with owner (MFP-21/MFP-22)

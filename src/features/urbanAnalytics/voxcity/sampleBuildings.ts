@@ -6,6 +6,7 @@
  */
 
 import type { BuildingFeature } from "./buildingTypes";
+import { SAMPLE_BUILDING_COUNT } from "./sampleBuildingSummary";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
@@ -155,6 +156,10 @@ export const SAMPLE_BUILDINGS: readonly BuildingFeature[] = [
   mkBuilding(49, 140, 255, 26, 22, { height: 50, "building:levels": 16 }, "L"),
   mkBuilding(50, 170, 255, 12, 10, { "building:levels": 3 }),
 ];
+
+if (SAMPLE_BUILDINGS.length !== SAMPLE_BUILDING_COUNT) {
+  throw new Error(`VoxCity sample building count drifted: expected ${SAMPLE_BUILDING_COUNT}, received ${SAMPLE_BUILDINGS.length}.`);
+}
 
 /** Available numeric attribute keys in the sample dataset for thematic styling. */
 export const SAMPLE_ATTRIBUTE_KEYS = ["height", "building:levels", "year"] as const;

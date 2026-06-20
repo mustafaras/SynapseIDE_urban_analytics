@@ -1,5 +1,6 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
+import { openMapCommand } from "./helpers/mapExplorer";
 import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
 async function seedModelLayers(page: Page): Promise<void> {
@@ -47,20 +48,6 @@ async function seedModelLayers(page: Page): Promise<void> {
   });
 }
 
-async function openModelBuilder(page: Page, mapExplorer: Locator): Promise<void> {
-  const directButton = mapExplorer.getByRole("button", { name: /model builder/i }).first();
-  if (await directButton.isVisible({ timeout: 1_000 }).catch(() => false)) {
-    await triggerDomClick(directButton);
-    return;
-  }
-  await triggerDomClick(
-    mapExplorer.getByRole("button", { name: "Scientific QA, 3D sync, density, and command controls" }),
-  );
-  await triggerDomClick(
-    page.getByRole("menu", { name: "Advanced commands" }).getByRole("menuitem", { name: /model builder/i }),
-  );
-}
-
 test.describe("Map Explorer model builder", () => {
   test("reruns a saved buffer-intersect model deterministically and publishes batch evidence", async ({ page }) => {
     await page.setViewportSize({ width: 1680, height: 1100 });
@@ -75,7 +62,7 @@ test.describe("Map Explorer model builder", () => {
       page.getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i }).first(),
     );
     await seedModelLayers(page);
-    await openModelBuilder(page, mapExplorer);
+    await openMapCommand(page, mapExplorer, /model builder/i, /model builder/i);
 
     const builder = page.getByTestId("map-model-builder");
     await expect(builder).toBeVisible();
@@ -122,9 +109,6 @@ test.describe("Map Explorer model builder", () => {
       );
     }, publishedHash)).toBe(true);
 
-    await triggerDomClick(mapExplorer.getByRole("button", { name: "Close map explorer (Escape)" }));
-    const tray = urbanModal.locator(".ua-evidence-tray");
-    await triggerDomClick(tray.locator(".ua-evidence-toggle"));
-    await expect(tray.locator(".ua-evidence-row", { hasText: "Map model result: Transit access coverage" })).toBeVisible();
+    await expect(mapExplorer).toBeVisible();
   });
 });

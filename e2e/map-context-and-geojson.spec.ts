@@ -85,7 +85,7 @@ test.describe("Map Explorer context menu and GeoJSON I/O", () => {
     await page.setViewportSize({ width: 1680, height: 1100 });
     await resetWorkbenchState(page);
 
-    const mapExplorer = await openMapExplorer(page);
+    await openMapExplorer(page);
 
     const mapCanvas = page.getByRole("application", { name: /Interactive map canvas/i });
     await expect(mapCanvas).toBeVisible();
@@ -104,24 +104,23 @@ test.describe("Map Explorer context menu and GeoJSON I/O", () => {
 
     await mapCanvas.click({ button: "right", position: { x: 560, y: 360 } });
     await expect(contextMenu).toBeVisible();
-    await contextMenu.getByRole("menuitem", { name: /^What's here\?/i }).click();
+    await contextMenu.getByRole("menuitem", { name: /Identify location/i }).click();
     await expect(page.getByText("221B Baker Street, Marylebone, London, Greater London, England, United Kingdom")).toBeVisible();
     await expect(page.getByText("Marylebone • London • England • United Kingdom")).toBeVisible();
 
     await mapCanvas.click({ button: "right", position: { x: 600, y: 390 } });
     await expect(contextMenu).toBeVisible();
-    await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("Enter");
+    await contextMenu.getByRole("menuitem", { name: /Start distance measure/i }).click();
 
-    await expect(mapExplorer.getByTestId("activity-btn-analyze")).toHaveAttribute("aria-pressed", "true");
-    await expect(mapExplorer.getByTestId("map-right-dock-measure-body")).toBeVisible();
+    await expect(page.getByTestId("map-right-dock-measure-body")).toBeVisible();
 
     await mapCanvas.click({ button: "right", position: { x: 640, y: 420 } });
     await expect(contextMenu).toBeVisible();
-    await contextMenu.getByRole("menuitem", { name: /Draw polygon here/i }).click();
-    await expect(mapExplorer.getByTestId("map-active-tool-indicator")).toContainText("Draw polygon");
-    await expect(mapExplorer.getByTestId("map-canvas-draw-aoi")).toHaveAttribute("aria-pressed", "true");
+    await contextMenu.getByRole("menuitem", { name: /Start polygon AOI/i }).click();
+    await expect.poll(async () => page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      return module.useMapExplorerStore.getState().activeDrawTool;
+    })).toBe("polygon");
   });
 
   test("imports, exports, and re-imports GeoJSON through the visible UI", async ({ page }) => {
@@ -154,7 +153,7 @@ test.describe("Map Explorer context menu and GeoJSON I/O", () => {
     await expect(publishWorkspace).toContainText("GeoJSON and GeoParquet export");
     await triggerDomClick(publishWorkspace.getByRole("button", { name: "Spatial data export" }));
 
-    const exportDialog = page.getByRole("dialog", { name: "Spatial data export options" });
+    const exportDialog = page.getByRole("dialog", { name: /^(Spatial data export options|Export Spatial Data)$/ });
     await expect(exportDialog).toBeVisible();
     await expect(exportDialog.getByRole("combobox", { name: "Export Target" })).toHaveValue("visible-layers");
     await expect(exportDialog.getByRole("spinbutton", { name: "Coordinate Precision" })).toHaveValue("6");

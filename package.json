@@ -43,7 +43,7 @@
     "test:e2e:a11y": "playwright test e2e/accessibility-audit.spec.ts",
     "test:e2e:smoke": "playwright test --grep \"@smoke\"",
     "test:e2e:rest": "playwright test --grep-invert \"@smoke\"",
-    "test:e2e:functional": "playwright test --grep-invert \"@smoke|@a11y\"",
+    "test:e2e:functional": "node scripts/run-e2e-functional.mjs",
     "test:e2e:ci": "npm run test:e2e:smoke && npm run test:e2e:a11y && npm run test:e2e:functional",
     "test:e2e:headed": "playwright test --headed",
     "perf:budgets": "node scripts/check-bundle-budgets.mjs",

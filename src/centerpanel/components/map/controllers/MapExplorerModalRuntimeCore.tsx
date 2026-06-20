@@ -7,7 +7,7 @@ import { BASE_STYLES, type BaseLayerId, type DrawnFeature, type DrawToolId, type
 import { resolveOverlayLayerCrsSummary } from '../mapLayerMetadata';
 import { applyMapCommand, type MapActionEffects, redoMapCommand, revertMapCommand } from '@/services/map/actions/MapActionExecutor';
 import { createMapActionHistory, findRedoableEntry, findRevertableEntry, findUndoableEntry, type MapActionHistory, type MapActionHistoryEntry, markMapActionRedone, markMapActionUndone, recordMapActionHistoryEntry, summarizeMapUndoRedo } from '@/services/map/actions/MapActionHistoryService';
-import { type GisStatusKey, MAP_COLORS, MAP_ICON_SIZES, MAP_RADIUS, MAP_SPACING, MAP_STROKES, MAP_TYPOGRAPHY, mapStyles } from '../mapTokens';
+import { type GisStatusKey, MAP_COLORS, MAP_ICON_SIZES, MAP_NUMERIC, MAP_RADIUS, MAP_SPACING, MAP_STROKES, MAP_TYPOGRAPHY, mapStyles } from '../mapTokens';
 import { MAP_LAYOUT_TOKENS } from '../mapLayoutTokens';
 import { MapCanvas } from '../MapCanvas';
 import { MapScaleIndicator } from '../MapScaleIndicator';
@@ -15,10 +15,10 @@ import { MapNavExtras } from '../MapNavExtras';
 import { MapSwipeCompareOverlay } from '../MapSwipeCompareOverlay';
 import { MapCanvasControls } from '../MapCanvasControls';
 import { MapDialogShell } from '../MapDialogShell';
+import { MapPanelErrorBoundary } from '../MapPanelErrorBoundary';
 import { MapTopCommandSurface } from '../MapTopCommandSurface';
 import { MapToolbar } from '../MapToolbar';
 import { GisEmptyState, GisIconButton, GisStatusChip } from '../ui';
-import { SAMPLE_BUILDINGS } from '@/features/urbanAnalytics/voxcity';
 import type { SymbolMode } from '../../MapSymbolLayer';
 import { MapDrawingManager } from '../../MapDrawingManager';
 import { type TemporalFrameExportPayload, useTemporalLayerStore } from '@/stores/useTemporalLayerStore';
@@ -42,16 +42,16 @@ import { summarizeDrawnGeometryValidation, validateDrawnGeometry } from '@/servi
 import { MapReviewTimelinePanel } from '../MapReviewTimelinePanel';
 import type { ProcessingToolboxLayerOption } from '../processing';
 import { applyContentsToRenderLayers } from '../contents';
-import { createMapProcessingRegistry, previewProcessingTool, runProcessingTool } from '../../../../services/map/processing';
-import { createMapExtensionRegistry } from '../../../../services/map/plugins';
-import { buildMapModelCodeArtifactRequest, executeMapModel, executeMapModelBatch, type MapModelBatchResult, type MapModelBatchTarget, type MapModelDefinition, type MapModelRunResult } from '../../../../services/map/model';
+import type { MapProcessingRegistry, ProcessingToolExecutorLookup } from '../../../../services/map/processing';
+import type { MapExtensionRegistry } from '../../../../services/map/plugins';
+import type { MapModelBatchResult, MapModelBatchTarget, MapModelDefinition, MapModelRunResult } from '../../../../services/map/model';
 import { type AttrFeature, type MapAttributeDerivedFieldDraft } from '../table/MapAttributeTable';
 import { MapAttributeWorkflowPanel } from '../table/MapAttributeWorkflowPanel';
 import type { MapInspectorHostContext } from '../inspector';
 import { createMapWorkflowResultEvidenceArtifact } from '../mapEvidenceArtifacts';
 import { useDraggableMapPanel } from '../useDraggableMapPanel';
 import { type MapRightDockPanel } from '../mapDocking';
-import { createMapRightDockRoute, deriveContextualToolPanelVisibility, getMapRightDockPanelDefinition, MAP_RIGHT_DOCK_PANEL_IDS, type MapRightDockRouteSource } from '../mapRightDockRoutes';
+import { createMapRightDockRoute, deriveContextualToolPanelVisibility, getMapRightDockPanelDefinition, isHostRenderedRoutePanel, MAP_RIGHT_DOCK_PANEL_IDS, type MapRightDockRouteSource } from '../mapRightDockRoutes';
 import { DEFAULT_DRAW_TOOL, isDrawAoiActionDisabled, resolveDrawToolOnOpen } from '../mapDrawToolPreferences';
 import { geometryBounds } from '../drawGeometryOps';
 import { type MapWorkspaceView } from '../mapExperience';
@@ -108,7 +108,6 @@ import { buildFeatureCollectionMetadata, getFeatureCollectionBounds, MAP_IMPORT_
 import { collectNumericFields, hasPointGeometry, isPointCandidate, resolveFeatureCollection } from '../symbologyUtils';
 import { buildMapPerformanceDiagnostics } from '../../../../services/map/MapPerformanceDiagnostics';
 import { recordMapTelemetryEvent } from '../../../../services/map/observability';
-import { bindTableAlias, loadGeoJSON, toGeoJSON } from '../../../../engine/spatial-db/SpatialDB';
 import { buildMapCompositionLegendItems, buildMapPublicationReadiness } from '../../../../services/map/MapExportService';
 import { attachSpatialStatsRerun, createAnalysisCompletedRun, createAnalysisMapOutput, createSpatialStatsCompletedRun, hasAnalysisRerun, rerunAnalysisResult } from '../../../../services/map/MapEngineAdapter';
 import { buildBufferedPointBounds, dispatchRecommendationFlow, getCompatibleAoiFlows, type MapDispatchCompatibleFlow, type SelectionStatisticsSummary, setMapViewRestriction } from '../../../../services/map/MapAnalysisDispatcher';
@@ -133,10 +132,100 @@ import { buildMapReportHandoffDraft } from '../../../../services/map/MapReportHa
 import { buildLayerRegistryReviewEvent, buildMapReviewContextSnapshot, buildRecommendationActionReviewEvent, buildRecommendationReviewEvent, buildScientificQAReviewEvent, type MapReviewTimelineEventInput } from '../../../../services/map/MapReviewSessionService';
 import { getMapReviewCollaborationConnectionBadge, MAP_REVIEW_COLLABORATION_SCHEMA_VERSION, type MapReviewCollaborationSnapshot } from '../../../../services/map/collaboration/MapReviewCollaborationService';
 import { applyCartographyRecommendationToLayer, generateMapCartographyReview, type MapCartographyRecommendation } from '../../../../services/map/MapCartographyAdvisor';
-import { toastError, toastInfo, toastSuccess, toastWarning } from '../../../../ui/toast/api';
+import { reportError } from '../../../../lib/error-bus';
+import { toastInfo, toastSuccess, toastWarning } from '../../../../ui/toast/api';
 import { isBackgroundTaskCancelledError } from '../../../../workers/pool';
 
 const RIGHT_DOCK_FOCUS_RESTORE_DELAY_MS = 180;
+
+type MapProcessingRuntimeModule = typeof import('../../../../services/map/processing');
+type MapPluginRuntimeModule = typeof import('../../../../services/map/plugins');
+type MapModelRuntimeModule = typeof import('../../../../services/map/model');
+type SpatialDbRuntimeModule = typeof import('../../../../engine/spatial-db/SpatialDB');
+type VoxCitySummaryRuntimeModule = typeof import('@/features/urbanAnalytics/voxcity/sampleBuildingSummary');
+
+let mapProcessingRuntimePromise: Promise<MapProcessingRuntimeModule> | null = null;
+let mapPluginRuntimePromise: Promise<MapPluginRuntimeModule> | null = null;
+let mapModelRuntimePromise: Promise<MapModelRuntimeModule> | null = null;
+let spatialDbRuntimePromise: Promise<SpatialDbRuntimeModule> | null = null;
+let voxCitySummaryRuntimePromise: Promise<VoxCitySummaryRuntimeModule> | null = null;
+
+function loadMapProcessingRuntime(): Promise<MapProcessingRuntimeModule> {
+  mapProcessingRuntimePromise ??= import('../../../../services/map/processing');
+  return mapProcessingRuntimePromise;
+}
+
+function loadMapPluginRuntime(): Promise<MapPluginRuntimeModule> {
+  mapPluginRuntimePromise ??= import('../../../../services/map/plugins');
+  return mapPluginRuntimePromise;
+}
+
+function loadMapModelRuntime(): Promise<MapModelRuntimeModule> {
+  mapModelRuntimePromise ??= import('../../../../services/map/model');
+  return mapModelRuntimePromise;
+}
+
+function loadSpatialDbRuntime(): Promise<SpatialDbRuntimeModule> {
+  spatialDbRuntimePromise ??= import('../../../../engine/spatial-db/SpatialDB');
+  return spatialDbRuntimePromise;
+}
+
+function loadVoxCitySummaryRuntime(): Promise<VoxCitySummaryRuntimeModule> {
+  voxCitySummaryRuntimePromise ??= import('@/features/urbanAnalytics/voxcity/sampleBuildingSummary');
+  return voxCitySummaryRuntimePromise;
+}
+
+function reportMapRuntimeError(code: string, message: string, detail?: unknown): void {
+  const detailText = detail instanceof Error
+    ? detail.stack ?? detail.message
+    : typeof detail === 'string'
+      ? detail
+      : undefined;
+  reportError({
+    source: 'ui',
+    code,
+    message,
+    ...(detailText ? { detail: detailText } : {}),
+  });
+}
+
+function buildRuntimeLoadingModelResult(model: MapModelDefinition, blocker: string): MapModelRunResult {
+  return {
+    status: 'blocked',
+    model,
+    definitionHash: `runtime-loading:${model.modelId}`,
+    executionHash: `runtime-loading:${model.modelId}`,
+    manifestHash: null,
+    manifest: null,
+    finalOutputLayer: null,
+    stepRuns: [],
+    finalOutcome: null,
+    blockers: [blocker],
+    caveats: [],
+    logs: [blocker],
+  };
+}
+
+function buildRuntimeLoadingBatchResult(
+  model: MapModelDefinition,
+  targets: readonly MapModelBatchTarget[],
+  blocker: string,
+): MapModelBatchResult {
+  return {
+    status: 'blocked',
+    results: targets.map((target) => ({
+      target,
+      result: buildRuntimeLoadingModelResult(model, blocker),
+    })),
+    blockers: [blocker],
+  };
+}
+
+function buildProcessingOptions(extensionExecutors: ProcessingToolExecutorLookup | undefined): {
+  extensionExecutors?: ProcessingToolExecutorLookup;
+} {
+  return extensionExecutors ? { extensionExecutors } : {};
+}
 
 const LazyMapReportHandoffDrawer = React.lazy(async () => {
   const module = await import('../MapReportHandoffDrawer');
@@ -830,6 +919,48 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   const [showPluginPanel, setShowPluginPanel] = useState(false);
   const [showSqlWorkspace, setShowSqlWorkspace] = useState(false);
   const [showMinimap, setShowMinimap] = useState(false);
+  const extensionRegistryRef = useRef<MapExtensionRegistry | null>(null);
+  const [extensionRegistry, setExtensionRegistry] = useState<MapExtensionRegistry | null>(null);
+  const [processingRuntime, setProcessingRuntime] = useState<MapProcessingRuntimeModule | null>(null);
+  const [modelRuntime, setModelRuntime] = useState<MapModelRuntimeModule | null>(null);
+  const [spatialDbRuntime, setSpatialDbRuntime] = useState<SpatialDbRuntimeModule | null>(null);
+  const [voxCityFootprintCount, setVoxCityFootprintCount] = useState(0);
+  const ensureExtensionRegistry = useCallback(async (): Promise<MapExtensionRegistry> => {
+    if (extensionRegistryRef.current) {
+      return extensionRegistryRef.current;
+    }
+    const module = await loadMapPluginRuntime();
+    const registry = module.createMapExtensionRegistry();
+    extensionRegistryRef.current = registry;
+    setExtensionRegistry(registry);
+    return registry;
+  }, []);
+  const ensureProcessingRuntime = useCallback(async (): Promise<MapProcessingRuntimeModule> => {
+    const [module] = await Promise.all([
+      loadMapProcessingRuntime(),
+      ensureExtensionRegistry(),
+    ]);
+    setProcessingRuntime(module);
+    return module;
+  }, [ensureExtensionRegistry]);
+  const ensureModelRuntime = useCallback(async (): Promise<MapModelRuntimeModule> => {
+    const [module] = await Promise.all([
+      loadMapModelRuntime(),
+      ensureProcessingRuntime(),
+    ]);
+    setModelRuntime(module);
+    return module;
+  }, [ensureProcessingRuntime]);
+  const ensureSpatialDbRuntime = useCallback(async (): Promise<SpatialDbRuntimeModule> => {
+    const module = await loadSpatialDbRuntime();
+    setSpatialDbRuntime(module);
+    return module;
+  }, []);
+  const ensureVoxCityRuntime = useCallback(async (): Promise<VoxCitySummaryRuntimeModule> => {
+    const module = await loadVoxCitySummaryRuntime();
+    setVoxCityFootprintCount(module.SAMPLE_BUILDING_COUNT);
+    return module;
+  }, []);
   const [copiedViewState, setCopiedViewState] = useState<{
     center: [number, number];
     zoom: number;
@@ -859,6 +990,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
 
   const openAnalyzeActivityTab = useCallback(
     (tabId: MapAnalyzeTabId, announcement: string) => {
+      if (tabId === 'analyze-tools') {
+        void ensureProcessingRuntime();
+      } else if (tabId === 'analyze-models') {
+        void ensureModelRuntime();
+      }
       dismissMapStartDialogForWorkspaceInteraction();
       setWorkspaceView('analyze');
       setActiveActivityId('analyze');
@@ -878,7 +1014,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
       setShowEmergingHotSpotViz(false);
       announce(announcement);
     },
-    [announce, dismissMapStartDialogForWorkspaceInteraction, setShowWorkflowDrawer, setWorkflowPreview]
+    [announce, dismissMapStartDialogForWorkspaceInteraction, ensureModelRuntime, ensureProcessingRuntime, setShowWorkflowDrawer, setWorkflowPreview]
   );
   const openStyleActivityTab = useCallback(
     (tabId: MapStyleTabId, announcement: string, layerId?: string | null) => {
@@ -957,10 +1093,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     },
     [announce, dismissMapStartDialogForWorkspaceInteraction, setShowWorkflowDrawer, setWorkflowPreview]
   );
-  const extensionRegistry = useMemo(() => createMapExtensionRegistry(), []);
-  const pluginExtensions = useMemo(() => extensionRegistry.list(), [extensionRegistry]);
-  const processingExtensionExecutors = useMemo(() => extensionRegistry.processingToolExecutors(), [extensionRegistry]);
+  const pluginExtensions = useMemo(() => extensionRegistry?.list() ?? [], [extensionRegistry]);
+  const processingExtensionExecutors = useMemo(
+    () => extensionRegistry?.processingToolExecutors(),
+    [extensionRegistry]
+  );
   const handleTogglePluginPanel = useCallback(() => {
+    if (!showPluginPanel) {
+      void ensureExtensionRegistry();
+    }
     setShowPluginPanel(previous => {
       const next = !previous;
       if (next) {
@@ -971,7 +1112,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
       return next;
     });
     announce('Plugin registry toggled');
-  }, [announce]);
+  }, [announce, ensureExtensionRegistry, showPluginPanel]);
   const handleToggleSqlWorkspace = useCallback(() => {
     setShowSqlWorkspace(previous => {
       const next = !previous;
@@ -1048,9 +1189,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     }
     openLayersActivityTab('layers-contents', 'Contents tree opened in Layers activity');
   }, [activeActivityId, announce, openLayersActivityTab, showLayerPanel, workbenchSidebarTab]);
-  const processingRegistry = useMemo(() => createMapProcessingRegistry(extensionRegistry.processingToolDescriptors()), [extensionRegistry]);
-  const processingToolDescriptors = useMemo(() => processingRegistry.list(), [processingRegistry]);
-  const searchProcessingTools = useCallback((query: string) => processingRegistry.search(query), [processingRegistry]);
+  const processingRegistry = useMemo<MapProcessingRegistry | null>(
+    () => processingRuntime?.createMapProcessingRegistry(extensionRegistry?.processingToolDescriptors() ?? []) ?? null,
+    [extensionRegistry, processingRuntime]
+  );
+  const processingToolDescriptors = useMemo(() => processingRegistry?.list() ?? [], [processingRegistry]);
+  const searchProcessingTools = useCallback((query: string) => processingRegistry?.search(query) ?? [], [processingRegistry]);
   const processingToolboxLayers = useMemo<ProcessingToolboxLayerOption[]>(
     () =>
       overlayLayers.map(layer => ({
@@ -1060,7 +1204,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
       })),
     [overlayLayers]
   );
-  const handlePreviewProcessingTool = useCallback((toolId: string, params: Record<string, string | number | boolean>) => previewProcessingTool(toolId, params, id => useMapExplorerStore.getState().overlayLayers.find(layer => layer.id === id) ?? null, { extensionExecutors: processingExtensionExecutors }), [processingExtensionExecutors]);
+  const handlePreviewProcessingTool = useCallback((toolId: string, params: Record<string, string | number | boolean>) => {
+    if (!processingRuntime) {
+      void ensureProcessingRuntime();
+      return null;
+    }
+    return processingRuntime.previewProcessingTool(
+      toolId,
+      params,
+      id => useMapExplorerStore.getState().overlayLayers.find(layer => layer.id === id) ?? null,
+      buildProcessingOptions(processingExtensionExecutors)
+    );
+  }, [ensureProcessingRuntime, processingExtensionExecutors, processingRuntime]);
   const [inspectorLayerId, setInspectorLayerId] = useState<string | null>(null);
   const inspectorReturnFocusRef = useRef<HTMLElement | null>(null);
   const inspectorLayer = inspectorLayerId ? (overlayLayers.find(entry => entry.id === inspectorLayerId) ?? null) : null;
@@ -1388,9 +1543,17 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
 
   const handleRunProcessingTool = useCallback(
     (toolId: string, params: Record<string, string | number | boolean>) => {
-      const result = runProcessingTool(toolId, params, buildMapActionEffects(), {
-        extensionExecutors: processingExtensionExecutors,
-      });
+      if (!processingRuntime) {
+        void ensureProcessingRuntime();
+        announce('Processing tools are loading. Try the command again in a moment.');
+        return null;
+      }
+      const result = processingRuntime.runProcessingTool(
+        toolId,
+        params,
+        buildMapActionEffects(),
+        buildProcessingOptions(processingExtensionExecutors)
+      );
       if (!result) return null;
       if (result.reviewEvent) recordMapReviewEvent(result.reviewEvent);
       if (result.status === 'applied') {
@@ -1417,7 +1580,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
       }
       return result;
     },
-    [announce, buildMapActionEffects, processingExtensionExecutors, recordMapActionHistory, recordMapReviewEvent, setActiveAnalysisResultLayers]
+    [announce, buildMapActionEffects, ensureProcessingRuntime, processingExtensionExecutors, processingRuntime, recordMapActionHistory, recordMapReviewEvent, setActiveAnalysisResultLayers]
   );
 
   const registerMapModelExecution = useCallback(
@@ -1466,16 +1629,47 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     [announce, recordMapActionHistory, recordMapReviewEvent, setActiveAnalysisResultLayers]
   );
 
-  const handleRunMapModel = useCallback((model: MapModelDefinition): MapModelRunResult => registerMapModelExecution(executeMapModel(model, processingRegistry, buildMapActionEffects(), { mapContextId: contextSummary.contextId, extensionExecutors: processingExtensionExecutors })), [buildMapActionEffects, contextSummary.contextId, processingExtensionExecutors, processingRegistry, registerMapModelExecution]);
+  const handleRunMapModel = useCallback((model: MapModelDefinition): MapModelRunResult => {
+    if (!modelRuntime || !processingRegistry) {
+      void ensureModelRuntime();
+      const blocker = 'Map model runtime is loading. Try the run again in a moment.';
+      announce(blocker);
+      return buildRuntimeLoadingModelResult(model, blocker);
+    }
+    return registerMapModelExecution(modelRuntime.executeMapModel(
+      model,
+      processingRegistry,
+      buildMapActionEffects(),
+      {
+        mapContextId: contextSummary.contextId,
+        ...buildProcessingOptions(processingExtensionExecutors),
+      }
+    ));
+  }, [announce, buildMapActionEffects, contextSummary.contextId, ensureModelRuntime, modelRuntime, processingExtensionExecutors, processingRegistry, registerMapModelExecution]);
 
   const handleRunMapModelBatch = useCallback(
     (model: MapModelDefinition, targets: readonly MapModelBatchTarget[]) => {
-      const batch = executeMapModelBatch(model, targets, processingRegistry, buildMapActionEffects(), { mapContextId: contextSummary.contextId, extensionExecutors: processingExtensionExecutors });
+      if (!modelRuntime || !processingRegistry) {
+        void ensureModelRuntime();
+        const blocker = 'Map model runtime is loading. Try the batch run again in a moment.';
+        announce(blocker);
+        return buildRuntimeLoadingBatchResult(model, targets, blocker);
+      }
+      const batch = modelRuntime.executeMapModelBatch(
+        model,
+        targets,
+        processingRegistry,
+        buildMapActionEffects(),
+        {
+          mapContextId: contextSummary.contextId,
+          ...buildProcessingOptions(processingExtensionExecutors),
+        }
+      );
       batch.results.forEach(entry => registerMapModelExecution(entry.result));
       if (batch.status !== 'blocked') announce(`${batch.results.length} model batch target(s) processed.`);
       return batch;
     },
-    [announce, buildMapActionEffects, contextSummary.contextId, processingExtensionExecutors, processingRegistry, registerMapModelExecution]
+    [announce, buildMapActionEffects, contextSummary.contextId, ensureModelRuntime, modelRuntime, processingExtensionExecutors, processingRegistry, registerMapModelExecution]
   );
 
   const handleCommitDrawnFeatureEdit = useCallback(
@@ -2110,6 +2304,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   const { reportHandoffSource, setReportHandoffSource, reportHandoffOptions, setReportHandoffOptions, reportHandoffSnapshot, setReportHandoffSnapshot, isGeneratingReportHandoffSnapshot, setIsGeneratingReportHandoffSnapshot, isExportingReportHandoffPdf, setIsExportingReportHandoffPdf } = useMapReportController();
   const activePublishTabId = resolvePublishTabId(workbenchSidebarTab);
   const publishReportTabDocked = activeActivityId === 'publish' && showLayerPanel && activePublishTabId === 'publish-report';
+  const activeRightDockRoutePanel = activeRightDockRoute?.panel ?? null;
   const { dockLayout, effectiveShowSidebar, effectiveShowLayerPanel, effectiveShowMeasurePanel, effectiveShowScientificQAPanel, effectiveShowUrbanMethodPanel, effectiveShowNLQueryPanel, effectiveShowWorkflowDrawer, navigatorLeftInset, navigatorRightInset } = useMapPanelLayout({
     mapContainerWidth,
     showLayerPanel,
@@ -2119,12 +2314,35 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     showWorkflowDrawer,
     showReviewTimeline,
     hasReportHandoffSource: Boolean(reportHandoffSource) && !publishReportTabDocked,
-    activeRightDockRoutePanel: activeRightDockRoute?.panel ?? null,
+    activeRightDockRoutePanel,
     rightDockCollapsed,
     navigatorStageMode,
     navigatorStageMargin: MAP_NAVIGATOR_STAGE_MARGIN,
     layoutPreferences,
   });
+  const hostRightDockVisible = isHostRenderedRoutePanel(activeRightDockRoutePanel) && !rightDockCollapsed;
+  const canvasOverlayRightInset = useMemo(() => {
+    if (navigatorStageMode || (!hostRightDockVisible && dockLayout.activeRightPanel == null)) {
+      return navigatorRightInset;
+    }
+
+    return Math.max(navigatorRightInset, dockLayout.rightPanelWidth + MAP_NUMERIC.overlayMargin);
+  }, [
+    hostRightDockVisible,
+    dockLayout.activeRightPanel,
+    dockLayout.rightPanelWidth,
+    navigatorRightInset,
+    navigatorStageMode,
+    rightDockCollapsed,
+  ]);
+  const canvasControlDockInsetStyle = useMemo(() => ({
+    '--map-dock-left': `${navigatorLeftInset}px`,
+    '--map-dock-right': `${canvasOverlayRightInset}px`,
+    '--map-shell-command-height': MAP_LAYOUT_TOKENS.commandBarHeight,
+    '--map-overlay-safe-inset-x': '0.75rem',
+    '--map-overlay-safe-inset-y': '0.25rem',
+    '--map-overlay-safe-top': 'calc(var(--map-shell-command-height, 2.25rem) + var(--map-overlay-safe-inset-y, 0.25rem))',
+  } as React.CSSProperties), [canvasOverlayRightInset, navigatorLeftInset]);
   const { closeFloatingRightPanels, closeRightDockPanels, handleToggleSidebar, handleToggleLayerPanel } = useMapPanelCommands({
     announce,
     compactDock: dockLayout.compactDock,
@@ -2172,11 +2390,14 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   );
   const handleOpenSceneTab = useCallback(
     (tabId: MapSceneTabId, announcement: string) => {
+      if (tabId === 'scene-voxcity') {
+        void ensureVoxCityRuntime();
+      }
       closeFloatingRightPanels();
       closeRightDockPanels();
       openSceneActivityTab(tabId, announcement);
     },
-    [closeFloatingRightPanels, closeRightDockPanels, openSceneActivityTab]
+    [closeFloatingRightPanels, closeRightDockPanels, ensureVoxCityRuntime, openSceneActivityTab]
   );
   const handleOpenPublishTab = useCallback(
     (tabId: MapPublishTabId, announcement: string) => {
@@ -3739,7 +3960,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
           title: 'IDE artifact failed',
           description: message,
         });
-        toastError(message);
+        reportMapRuntimeError('MAP_IDE_ARTIFACT_REQUEST_FAILED', message, error);
         announce(`IDE artifact failed: ${message}`);
       }
     },
@@ -3748,13 +3969,20 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
 
   const handleExportMapModelToIdeAndUrban = useCallback(
     (result: MapModelRunResult, batchResult: MapModelBatchResult | null) => {
+      if (!modelRuntime) {
+        void ensureModelRuntime();
+        const message = 'Map model export runtime is loading. Try the export again in a moment.';
+        reportMapRuntimeError('MAP_MODEL_EXPORT_RUNTIME_LOADING', message);
+        announce(message);
+        return;
+      }
       if (!result.manifest || !result.manifestHash || !result.finalOutputLayer) {
         announce('Run the model successfully before exporting it.');
         return;
       }
       const mapState = useMapExplorerStore.getState();
       const currentContextSummary = selectMapExplorerContextSummary(mapState);
-      const request = buildMapModelCodeArtifactRequest({
+      const request = modelRuntime.buildMapModelCodeArtifactRequest({
         result,
         contextSummary: currentContextSummary,
         overlayLayers: mapState.overlayLayers,
@@ -3811,7 +4039,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
       });
       announce(`${result.model.title} exported to Synapse IDE and published to Urban evidence.`);
     },
-    [announce, handleDispatchMapCodeArtifact]
+    [announce, ensureModelRuntime, handleDispatchMapCodeArtifact, modelRuntime]
   );
 
   const handleOpenLayerInIde = useCallback(
@@ -4246,7 +4474,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
         announce(`Analysis result refreshed for ${rerunResult.layer.name}`);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Analysis re-run failed.';
-        toastError(message);
+        reportMapRuntimeError('MAP_ANALYSIS_RERUN_FAILED', message, error);
         announce(`Analysis re-run failed: ${message}`);
       } finally {
         setRerunningAnalysisToken(null);
@@ -4884,7 +5112,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
             restrictToView: restrictToMapView,
           },
         });
-        toastError(message);
+        reportMapRuntimeError('MAP_QUICK_HOT_SPOT_FAILED', message, error);
         announce(message);
       } finally {
         setIsRunningQuickHotSpot(false);
@@ -4985,12 +5213,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
       });
 
       try {
+        const spatialDb = spatialDbRuntime ?? await ensureSpatialDbRuntime();
         const result = await executeMapNLQueryPreview(
           preview,
           {
-            loadGeoJSON,
-            bindTableAlias,
-            toGeoJSON,
+            loadGeoJSON: spatialDb.loadGeoJSON,
+            bindTableAlias: spatialDb.bindTableAlias,
+            toGeoJSON: spatialDb.toGeoJSON,
           },
           { confirmed: options.confirmed }
         );
@@ -5046,13 +5275,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
             failureReason: message,
           }),
         });
-        toastError(message);
+        reportMapRuntimeError('MAP_NL_QUERY_FAILED', message, error);
         announce(message);
       } finally {
         setIsRunningMapNLQuery(false);
       }
     },
-    [addOverlayLayer, announce, fitToBounds, isRunningMapNLQuery, recordMapReviewEvent, setActiveAnalysisResultLayers, upsertCompletedRun, upsertMapEvidenceArtifact]
+    [addOverlayLayer, announce, ensureSpatialDbRuntime, fitToBounds, isRunningMapNLQuery, recordMapReviewEvent, setActiveAnalysisResultLayers, spatialDbRuntime, upsertCompletedRun, upsertMapEvidenceArtifact]
   );
 
   const getCurrentViewportState = useCallback(() => {
@@ -6005,7 +6234,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
       measureUnit={measureUnit}
       measurementSeed={measurementSeed}
       measurements={measurements}
-      onApplyLayerStyle={handleApplyLayerStyle}
       overlayLayers={overlayLayers}
       performanceDiagnostics={performanceDiagnostics}
       publishDataExportElement={publishDataExportElement}
@@ -6171,6 +6399,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   })();
 
   return createPortal(
+    <MapPanelErrorBoundary
+      panelName="Map Explorer shell"
+      resetKey={open}
+      onClose={handleMapExplorerCloseRequest}
+    >
     <MapWorkspaceShell mode={mode} shellRef={trapRef} onClose={handleMapExplorerCloseRequest} activeActivityId={activeActivityId}>
       {reducedMotion ? <style>{'[data-map-explorer-shell="true"], [data-map-explorer-shell="true"] * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }'}</style> : null}
       <input
@@ -6310,7 +6543,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
             pluginExtensionCount={pluginExtensions.length}
             showProcessingToolbox={showProcessingToolbox || analyzeToolsTabActive}
             onToggleProcessingToolbox={handleToggleProcessingToolbox}
-            processingToolCount={processingRegistry.implementedCount()}
+            processingToolCount={processingRegistry?.implementedCount() ?? 0}
             showSqlWorkspace={showSqlWorkspace}
             onToggleSqlWorkspace={handleToggleSqlWorkspace}
             showMinimap={showMinimap}
@@ -6342,7 +6575,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
               }
               handleOpenSceneTab('scene-voxcity', 'VoxCity 2D overlay opened in Scene');
             }}
-            voxCityFootprintCount={SAMPLE_BUILDINGS.length}
+            voxCityFootprintCount={voxCityFootprintCount}
             restrictToMapView={restrictToMapView}
             onToggleRestrictToMapView={handleToggleRestrictToMapView}
             activeDrawTool={activeDrawTool}
@@ -6447,7 +6680,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
           {
             '--map-shell-command-height': MAP_LAYOUT_TOKENS.commandBarHeight,
             '--map-dock-left': `${navigatorLeftInset}px`,
-            '--map-dock-right': `${navigatorRightInset}px`,
+            '--map-dock-right': `${canvasOverlayRightInset}px`,
             '--map-overlay-safe-inset-x': '0.75rem',
             '--map-overlay-safe-inset-y': '0.25rem',
             '--map-overlay-safe-top': 'calc(var(--map-shell-command-height, 2.25rem) + var(--map-overlay-safe-inset-y, 0.25rem))',
@@ -6518,7 +6751,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
           </div>
         ) : null}
 
-        <MapCanvasOverlayChrome announce={announce} dispatchFeedback={dispatchFeedback} externalBounds={externalServiceBounds?.bounds ?? null} externalBoundsLabel={externalServiceBounds?.label ?? null} handleExternalServiceLayerReady={handleExternalServiceLayerReady} handleExternalServiceProgress={handleExternalServiceProgress} handleOpenVoxCityOverlayFromService={handleOpenVoxCityOverlayFromService} importLabel={importLabel} importProgress={importProgress} navigatorLeftInset={navigatorLeftInset} navigatorRightInset={navigatorRightInset} overlayLayers={overlayLayers} onExternalServiceDialogClosed={restoreExternalServiceReturnFocus} removeOverlayLayer={removeOverlayLayer} setShowExternalServiceDialog={setShowExternalServiceDialog} showExternalServiceDialog={showExternalServiceDialog} showImportProgress={showImportProgress} />
+        <MapCanvasOverlayChrome announce={announce} dispatchFeedback={dispatchFeedback} externalBounds={externalServiceBounds?.bounds ?? null} externalBoundsLabel={externalServiceBounds?.label ?? null} handleExternalServiceLayerReady={handleExternalServiceLayerReady} handleExternalServiceProgress={handleExternalServiceProgress} handleOpenVoxCityOverlayFromService={handleOpenVoxCityOverlayFromService} importLabel={importLabel} importProgress={importProgress} navigatorLeftInset={navigatorLeftInset} navigatorRightInset={canvasOverlayRightInset} overlayLayers={overlayLayers} onExternalServiceDialogClosed={restoreExternalServiceReturnFocus} removeOverlayLayer={removeOverlayLayer} setShowExternalServiceDialog={setShowExternalServiceDialog} showExternalServiceDialog={showExternalServiceDialog} showImportProgress={showImportProgress} />
 
         {isFlowDispatchDialogOpen ? <MapFlowDispatchDialog compatibleAoiFlows={compatibleAoiFlows} flowDispatchAoi={flowDispatchAoi} hasCurrentMapBounds={Boolean(currentMapBounds)} restrictToMapView={restrictToMapView} onClose={() => setIsFlowDispatchDialogOpen(false)} onToggleRestrictToMapView={handleToggleRestrictToMapView} onDispatchFlow={handleDispatchFlowSelection} /> : null}
 
@@ -6641,7 +6874,210 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
         <Suspense fallback={null}>
           <LazyMapInspectorHost visible={inspectorContext.kind !== 'none'} context={inspectorContext} presentation={dockLayout.compactDock ? 'bottom-drawer' : 'right-rail'} width={dockLayout.rightPanelWidth} onClose={handleCloseInspectorHost} onApplyLayerStyle={handleApplyLayerStyle} returnFocusTo={inspectorReturnFocusRef.current} />
         </Suspense>
-        <MapExplorerModalRuntimeView announce={announce} handleOpenSceneTab={handleOpenSceneTab} navigatorStageMode={navigatorStageMode} scene3DTabActive={scene3DTabActive} sceneMassingTabActive={sceneMassingTabActive} sceneRasterTabActive={sceneRasterTabActive} sceneSunShadowTabActive={sceneSunShadowTabActive} sceneZoningTabActive={sceneZoningTabActive} showPluginPanel={showPluginPanel} setShowPluginPanel={setShowPluginPanel} pluginExtensions={pluginExtensions} showProcessingToolbox={showProcessingToolbox} setShowProcessingToolbox={setShowProcessingToolbox} showSqlWorkspace={showSqlWorkspace} setShowSqlWorkspace={setShowSqlWorkspace} handleSqlResultToMap={handleSqlResultToMap} showMinimap={showMinimap} minimapCenter={center} minimapZoom={zoom} analyzeToolsTabActive={analyzeToolsTabActive} searchProcessingTools={searchProcessingTools} processingToolboxLayers={processingToolboxLayers} handlePreviewProcessingTool={handlePreviewProcessingTool} handleRunProcessingTool={handleRunProcessingTool} showModelBuilder={showModelBuilder} setShowModelBuilder={setShowModelBuilder} analyzeModelsTabActive={analyzeModelsTabActive} processingToolDescriptors={processingToolDescriptors} handleRunMapModel={handleRunMapModel} handleRunMapModelBatch={handleRunMapModelBatch} handleExportMapModelToIdeAndUrban={handleExportMapModelToIdeAndUrban} effectiveShowWorkflowDrawer={effectiveShowWorkflowDrawer} analyzeWorkflowsTabActive={analyzeWorkflowsTabActive} workflowPreview={workflowPreview} effectiveShowScientificQAPanel={effectiveShowScientificQAPanel} scientificQA={scientificQA} overlayLayers={overlayLayers} compactDock={dockLayout.compactDock} rightPanelWidth={dockLayout.rightPanelWidth} handleRightPanelWidthChange={handleRightPanelWidthChange} setShowScientificQAPanel={setShowScientificQAPanel} handleFocusLayer={handleFocusLayer} handleInspectLayer={handleInspectLayer} handleRepairLayerGeometry={handleRepairLayerGeometry} handleOpenPublishTab={handleOpenPublishTab} effectiveShowNLQueryPanel={effectiveShowNLQueryPanel} analyzeQueryTabActive={analyzeQueryTabActive} selectedAoiFeatureForQuery={selectedAoiFeatureForQuery} currentMapBounds={currentMapBounds} isRunningMapNLQuery={isRunningMapNLQuery} lastMapNLQuerySummary={lastMapNLQuerySummary} handleRunMapNLQuery={handleRunMapNLQuery} handleMapNLQueryProposalGenerated={handleMapNLQueryProposalGenerated} handleMapNLQueryPreviewDecision={handleMapNLQueryPreviewDecision} setShowNLQueryPanel={setShowNLQueryPanel} urbanWorkflowDraftRequest={urbanWorkflowDraftRequest} workflowContext={workflowContext} setShowWorkflowDrawer={setShowWorkflowDrawer} setWorkflowPreview={setWorkflowPreview} setUrbanWorkflowDraftRequest={setUrbanWorkflowDraftRequest} handleApplyMapWorkflow={handleApplyMapWorkflow} handleSaveWorkflowReport={handleSaveWorkflowReport} handleOpenWorkflowScriptInIde={handleOpenWorkflowScriptInIde} handleExecuteMapWorkflow={handleExecuteMapWorkflow} handleCancelMapWorkflow={handleCancelMapWorkflow} workflowExecution={workflowExecution} mapCanvasControlsProps={mapCanvasControlsProps} canvasControlDockVisible={showCanvasControlDock} onCloseCanvasControlDock={() => { setShowCanvasControlDock(false); announce('View controls closed'); }} showLegendOverlay={mapCompositionOptions.includeLegend} mapPublicationLegendItems={mapPublicationLegendItems} performanceDiagnostics={performanceDiagnostics} openPerformanceRightDock={openPerformanceRightDock} activeRightDockRoute={activeRightDockRoute} rightDockPanels={MAP_RIGHT_DOCK_PANEL_IDS} rightDockBodyContent={rightDockBodyContent} rightDockPresentation={dockLayout.rightPanelPlacement === 'drawer' ? 'side-drawer' : 'floating-modal'} rightDockCollapsed={rightDockCollapsed} rightDockFloatingRect={layoutPreferences.rightDockFloating} handleRightDockHostPanelChange={handleRightDockHostPanelChange} handleCollapseRightDockHost={handleCollapseRightDockHost} handleCloseRightDockHost={handleCloseRightDockHost} handleRightDockFloatingRectChange={handleRightDockFloatingRectChange} effectiveShowUrbanMethodPanel={effectiveShowUrbanMethodPanel} activeUrbanMethodRequest={activeUrbanMethodRequest} activeUrbanMethodPreview={activeUrbanMethodPreview} handleCloseUrbanMethodRail={handleCloseUrbanMethodRail} handleFocusUrbanMethodLayer={handleFocusUrbanMethodLayer} handlePreviewUrbanMethodWorkflow={handlePreviewUrbanMethodWorkflow} showFigureComposer={showFigureComposer} publishFigureTabActive={publishFigureTabActive} bearing={bearing} temporalLayoutRestoreRequest={temporalLayoutRestoreRequest} setShowFigureComposer={setShowFigureComposer} setShowMapExportDialog={setShowMapExportDialog} handleTemporalRestoreRequestHandled={handleTemporalRestoreRequestHandled} mapRef={mapInstanceRef} reducedMotion={reducedMotion} temporalPlayerMap={mapInstanceRef.current} temporalFrames={activeTemporalLayer?.metadata?.analysisResult?.visualization.temporalFrames ?? []} temporalTimeProperty={activeTemporalLayer?.metadata?.analysisResult?.visualization.timeProperty ?? 'timestamp'} temporalSourceId={activeTemporalLayer?.id ?? null} temporalLayerId={activeTemporalLayer?.id ?? null} temporalLayerName={activeTemporalLayer?.name ?? null} temporalPlayerVisible={!!open && sceneTemporalTabActive} showChoroplethPanel={showChoroplethPanel} setShowChoroplethPanel={setShowChoroplethPanel} showClusterViz={showClusterViz} setShowClusterViz={setShowClusterViz} showHotSpotViz={showHotSpotViz} setShowHotSpotViz={setShowHotSpotViz} showEmergingHotSpotViz={showEmergingHotSpotViz} setShowEmergingHotSpotViz={setShowEmergingHotSpotViz} activeDrawTool={activeDrawTool} drawSeed={drawSeed} drawnFeatures={drawnFeatures} drawingSnapSources={drawingSnapSources} selectedFeatureId={selectedFeatureId} addDrawnFeature={addDrawnFeature} removeDrawnFeature={removeDrawnFeature} updateDrawnFeature={updateDrawnFeature} handleCommitDrawnFeatureEdit={handleCommitDrawnFeatureEdit} clearDrawnFeatures={clearDrawnFeatures} setSelectedFeatureId={setSelectedFeatureId} handleCancelDraw={handleCancelDraw} setDrawSeed={setDrawSeed} effectiveShowMeasurePanel={effectiveShowMeasurePanel} rightMeasureDockActive={rightMeasureDockActive} activeMeasureTool={activeMeasureTool} measurementSeed={measurementSeed} measurements={measurements} measureUnit={measureUnit} addMeasurement={addMeasurement} removeMeasurement={removeMeasurement} clearMeasurements={clearMeasurements} setMeasureUnit={setMeasureUnit} handleCancelMeasure={handleCancelMeasure} setMeasurementSeed={setMeasurementSeed} pins={pins} effectiveShowSidebar={effectiveShowSidebar} handleRemovePin={handleRemovePin} handleClearPins={handleClearPins} flyTo={flyTo} effectiveShowLayerPanel={effectiveShowLayerPanel} layerPanelOpenButtonStyle={mapStyles.layerPanelOpenButton} layerOpenButtonIconSize={MAP_ICON_SIZES.sm} handleMapClick={handleMapClick} handleStartMeasureFromContext={handleStartMeasureFromContext} handleStartPolygonFromContext={handleStartPolygonFromContext} handleOpenFlowDispatchDialog={handleOpenFlowDispatchDialog} handleIsochroneDispatch={handleIsochroneDispatch} handleHotSpotDispatch={handleHotSpotDispatch} handleRunSelectionStatistics={handleRunSelectionStatistics} selectionStatsAvailable={selectionStatsAvailable} annotationMode={annotationMode} annotations={annotations} selectedAnnotationId={selectedAnnotationId} annotationToolSettings={annotationToolSettings} handleAddMapAnnotation={handleAddMapAnnotation} handleUpdateMapAnnotation={handleUpdateMapAnnotation} handleMoveMapAnnotation={handleMoveMapAnnotation} handleRemoveMapAnnotation={handleRemoveMapAnnotation} setSelectedAnnotationId={setSelectedAnnotationId} setAnnotationToolSettings={setAnnotationToolSettings} handleDeactivateAnnotationMode={handleDeactivateAnnotationMode} setShowComparisonStrip={setShowComparisonStrip} setShowInteractionStrip={setShowInteractionStrip} setShowLayerPanel={setShowLayerPanel} showComparisonStrip={showComparisonStrip} showInteractionStrip={showInteractionStrip} />
+        <MapExplorerModalRuntimeView
+          shell={{
+            announce,
+            navigatorStageMode,
+            overlayLayers,
+            reducedMotion,
+          }}
+          scene={{
+            handleOpenSceneTab,
+            scene3DTabActive,
+            sceneMassingTabActive,
+            sceneRasterTabActive,
+            sceneSunShadowTabActive,
+            sceneZoningTabActive,
+            setShowComparisonStrip,
+            setShowInteractionStrip,
+            setShowLayerPanel,
+            showComparisonStrip,
+            showInteractionStrip,
+          }}
+          extensions={{
+            analyzeModelsTabActive,
+            analyzeToolsTabActive,
+            handleExportMapModelToIdeAndUrban,
+            handlePreviewProcessingTool,
+            handleRunMapModel,
+            handleRunMapModelBatch,
+            handleRunProcessingTool,
+            handleSqlResultToMap,
+            minimapCenter: center,
+            minimapZoom: zoom,
+            pluginExtensions,
+            processingToolDescriptors,
+            processingToolboxLayers,
+            searchProcessingTools,
+            setShowModelBuilder,
+            setShowPluginPanel,
+            setShowProcessingToolbox,
+            setShowSqlWorkspace,
+            showMinimap,
+            showModelBuilder,
+            showPluginPanel,
+            showProcessingToolbox,
+            showSqlWorkspace,
+          }}
+          qaQuery={{
+            analyzeQueryTabActive,
+            compactDock: dockLayout.compactDock,
+            currentMapBounds,
+            effectiveShowNLQueryPanel,
+            effectiveShowScientificQAPanel,
+            handleFocusLayer,
+            handleInspectLayer,
+            handleMapNLQueryPreviewDecision,
+            handleMapNLQueryProposalGenerated,
+            handleOpenPublishTab,
+            handleRepairLayerGeometry,
+            handleRightPanelWidthChange,
+            handleRunMapNLQuery,
+            isRunningMapNLQuery,
+            lastMapNLQuerySummary,
+            rightPanelWidth: dockLayout.rightPanelWidth,
+            scientificQA,
+            selectedAoiFeatureForQuery,
+            setShowNLQueryPanel,
+            setShowScientificQAPanel,
+          }}
+          workflow={{
+            analyzeWorkflowsTabActive,
+            effectiveShowWorkflowDrawer,
+            handleApplyMapWorkflow,
+            handleCancelMapWorkflow,
+            handleExecuteMapWorkflow,
+            handleOpenWorkflowScriptInIde,
+            handleSaveWorkflowReport,
+            setShowWorkflowDrawer,
+            setUrbanWorkflowDraftRequest,
+            setWorkflowPreview,
+            urbanWorkflowDraftRequest,
+            workflowContext,
+            workflowExecution,
+            workflowPreview,
+          }}
+          canvas={{
+            canvasControlDockVisible: showCanvasControlDock,
+            mapCanvasControlsProps: {
+              ...mapCanvasControlsProps,
+              controlDockStyle: canvasControlDockInsetStyle,
+            },
+            mapPublicationLegendItems,
+            onCloseCanvasControlDock: () => {
+              setShowCanvasControlDock(false);
+              announce('View controls closed');
+            },
+            openPerformanceRightDock,
+            performanceDiagnostics,
+            showLegendOverlay: mapCompositionOptions.includeLegend,
+          }}
+          rightDock={{
+            activeRightDockRoute,
+            activeUrbanMethodPreview,
+            activeUrbanMethodRequest,
+            effectiveShowUrbanMethodPanel,
+            handleCloseRightDockHost,
+            handleCloseUrbanMethodRail,
+            handleCollapseRightDockHost,
+            handleFocusUrbanMethodLayer,
+            handlePreviewUrbanMethodWorkflow,
+            handleRightDockFloatingRectChange,
+            handleRightDockHostPanelChange,
+            rightDockBodyContent,
+            rightDockCollapsed,
+            ...(layoutPreferences.rightDockFloating ? { rightDockFloatingRect: layoutPreferences.rightDockFloating } : {}),
+            rightDockPanels: MAP_RIGHT_DOCK_PANEL_IDS,
+            rightDockPresentation: dockLayout.rightPanelPlacement === 'drawer' ? 'side-drawer' : 'floating-modal',
+          }}
+          publishTemporal={{
+            bearing,
+            handleTemporalRestoreRequestHandled,
+            mapRef: mapInstanceRef,
+            publishFigureTabActive,
+            setShowFigureComposer,
+            setShowMapExportDialog,
+            showFigureComposer,
+            temporalFrames: activeTemporalLayer?.metadata?.analysisResult?.visualization.temporalFrames ?? [],
+            temporalLayerId: activeTemporalLayer?.id ?? null,
+            temporalLayerName: activeTemporalLayer?.name ?? null,
+            temporalLayoutRestoreRequest,
+            temporalPlayerMap: mapInstanceRef.current,
+            temporalPlayerVisible: !!open && sceneTemporalTabActive,
+            temporalSourceId: activeTemporalLayer?.id ?? null,
+            temporalTimeProperty: activeTemporalLayer?.metadata?.analysisResult?.visualization.timeProperty ?? 'timestamp',
+          }}
+          visualizations={{
+            setShowChoroplethPanel,
+            setShowClusterViz,
+            setShowEmergingHotSpotViz,
+            setShowHotSpotViz,
+            showChoroplethPanel,
+            showClusterViz,
+            showEmergingHotSpotViz,
+            showHotSpotViz,
+          }}
+          draw={{
+            activeDrawTool,
+            addDrawnFeature,
+            clearDrawnFeatures,
+            drawSeed,
+            drawnFeatures,
+            drawingSnapSources,
+            handleCancelDraw,
+            handleCommitDrawnFeatureEdit,
+            removeDrawnFeature,
+            selectedFeatureId,
+            setDrawSeed,
+            setSelectedFeatureId,
+            updateDrawnFeature,
+          }}
+          measure={{
+            activeMeasureTool,
+            addMeasurement,
+            clearMeasurements,
+            effectiveShowMeasurePanel,
+            handleCancelMeasure,
+            measurements,
+            measurementSeed,
+            measureUnit,
+            removeMeasurement,
+            rightMeasureDockActive,
+            setMeasureUnit,
+            setMeasurementSeed,
+          }}
+          interaction={{
+            effectiveShowLayerPanel,
+            effectiveShowSidebar,
+            flyTo,
+            handleClearPins,
+            handleHotSpotDispatch,
+            handleIsochroneDispatch,
+            handleMapClick,
+            handleOpenFlowDispatchDialog,
+            handleRemovePin,
+            handleRunSelectionStatistics,
+            handleStartMeasureFromContext,
+            handleStartPolygonFromContext,
+            layerOpenButtonIconSize: MAP_ICON_SIZES.sm,
+            layerPanelOpenButtonStyle: mapStyles.layerPanelOpenButton,
+            pins,
+            selectionStatsAvailable,
+          }}
+          annotation={{
+            annotationMode,
+            annotationToolSettings,
+            annotations,
+            handleAddMapAnnotation,
+            handleDeactivateAnnotationMode,
+            handleMoveMapAnnotation,
+            handleRemoveMapAnnotation,
+            handleUpdateMapAnnotation,
+            selectedAnnotationId,
+            setAnnotationToolSettings,
+            setSelectedAnnotationId,
+          }}
+        />
 
         {showDrawPanel && !navigatorStageMode ? (
           <MapDialogShell
@@ -6820,7 +7256,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
           },
         }}
       />
-    </MapWorkspaceShell>,
+    </MapWorkspaceShell>
+    </MapPanelErrorBoundary>,
     document.body
   );
 };

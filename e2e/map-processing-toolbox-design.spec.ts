@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { openMapCommand } from "./helpers/mapExplorer";
 import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
 /**
@@ -6,17 +7,7 @@ import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } fro
  * showing its reason BEFORE any run (Run disabled, reason visible pre-run).
  */
 async function openProcessingToolbox(page: Page, mapExplorer: ReturnType<Page["getByRole"]>): Promise<void> {
-  const directButton = mapExplorer.getByRole("button", { name: /processing toolbox/i }).first();
-  if (await directButton.isVisible({ timeout: 1_000 }).catch(() => false)) {
-    await triggerDomClick(directButton);
-    return;
-  }
-  await triggerDomClick(
-    mapExplorer.getByRole("button", { name: "Scientific QA, 3D sync, density, and command controls" }),
-  );
-  await triggerDomClick(
-    page.getByRole("menu", { name: "Advanced commands" }).getByRole("menuitem", { name: /processing toolbox/i }),
-  );
+  await openMapCommand(page, mapExplorer, /processing toolbox/i, /processing toolbox/i);
 }
 
 test.describe("Map Explorer processing toolbox — premium styling + blocked states", () => {

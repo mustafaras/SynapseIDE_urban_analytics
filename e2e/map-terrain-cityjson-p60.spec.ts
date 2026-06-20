@@ -6,11 +6,16 @@
  * SourceHandle metadata records vertical datum truthfully.
  */
 import { expect, test, type Page } from "@playwright/test";
-import { resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
+import {
+  openMapExplorer as openMapExplorerWorkbench,
+  resetWorkbenchState,
+  triggerDomClick,
+} from "./helpers/urbanAnalytics";
 
 async function openMapExplorer(page: Page) {
   await page.setViewportSize({ width: 1680, height: 1100 });
   await resetWorkbenchState(page);
+  await openMapExplorerWorkbench(page, "scene");
 }
 
 function countUniqueByteValues(buffer: Buffer, sampleSize = 4000): number {
@@ -101,14 +106,16 @@ test.describe("Prompt 60 — terrain + CityJSON 3D scene @smoke", () => {
         cityModelSourceHandle: cityModel.sourceHandle,
         terrainSourceHandle: terrainHandle,
       });
-      mapStore.open();
     });
 
     const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
     await expect(mapExplorer).toBeVisible();
     await expect(page.getByTestId("map-top-command-surface")).toBeVisible();
 
-    await triggerDomClick(page.getByTestId("toggle-3d-panel"));
+    const scene3dTab = mapExplorer.getByTestId("map-workbench-sidebar-tab-scene-3d");
+    await expect(scene3dTab).toBeVisible();
+    await scene3dTab.scrollIntoViewIfNeeded();
+    await triggerDomClick(scene3dTab);
 
     const panel = page.getByTestId("scene3d-panel");
     await expect(panel).toBeVisible();

@@ -18,15 +18,15 @@ export async function chooseLocalMapImportFile(page: Page, payload: FilePayload)
 
   const [importChooser] = await Promise.all([
     page.waitForEvent("filechooser"),
-    importHub.getByRole("button", { name: "Browse Local File" }).click(),
+    importHub.getByRole("button", { name: /Browse Local Files?/ }).click(),
   ]);
   await importChooser.setFiles(payload);
 }
 
 export async function confirmImportSourcePreflight(page: Page): Promise<void> {
-  const preflightDialog = page.getByRole("dialog", { name: "Import source preflight" });
+  const preflightDialog = page.getByRole("dialog", { name: /^(Import source preflight|Review Source Before Import|Review GeoParquet Import|Review Arrow Import|Import CSV Points)$/ });
   await expect(preflightDialog).toBeVisible();
-  await triggerDomClick(preflightDialog.getByRole("button", { name: "Import Source" }));
+  await triggerDomClick(preflightDialog.getByRole("button", { name: /^(Import Source|Import Dataset|Import)$/ }));
   await expect(preflightDialog).toBeHidden();
 }
 

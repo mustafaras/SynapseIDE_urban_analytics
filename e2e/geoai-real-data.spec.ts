@@ -343,10 +343,24 @@ test.describe("GeoAI land-cover real-data upgrade", () => {
 
     await triggerDomClick(urbanModal.getByTestId("tools-nav-geoai"));
     await expect(urbanModal.getByTestId("tools-card-geoai")).toBeVisible();
+    await urbanModal.getByTestId("geoai-land-cover-source-select").selectOption("demo-raster-bosphorus");
     await expect(urbanModal.getByTestId("geoai-land-cover-mode")).toContainText(/Demo source/i);
+    await expect(urbanModal.getByTestId("geoai-land-cover-readiness")).toContainText(/analysis-ready/i);
+    await expect(urbanModal.getByTestId("geoai-land-cover-run")).toBeEnabled();
 
     await triggerDomClick(urbanModal.getByTestId("geoai-land-cover-run"));
-    await expect(urbanModal.getByTestId("geoai-land-cover-notice")).toContainText(/Demo source classification published/i);
+    await expect.poll(async () => page.evaluate(async () => {
+      const mapStoreModule = await import("/src/stores/useMapExplorerStore.ts");
+      const flowStoreModule = await import("/src/stores/useFlowStore.ts");
+      return {
+        hasDemoLayer: mapStoreModule.useMapExplorerStore
+          .getState()
+          .overlayLayers.some((layer) => layer.name === "GeoAI Land Cover · Demo source"),
+        hasReviewRun: flowStoreModule.useFlowStore
+          .getState()
+          .completedRuns.some((run) => run.label === "GeoAI Land Cover · Demo source"),
+      };
+    }), { timeout: 30000 }).toEqual({ hasDemoLayer: true, hasReviewRun: true });
     await closeMapExplorer(page);
 
     const workflowsTab = urbanModal.getByTestId("cp-tab-workflows");
@@ -357,7 +371,7 @@ test.describe("GeoAI land-cover real-data upgrade", () => {
     await expect(reviewFlow).toContainText(/GeoAI Land Cover/i);
   });
 
-  test("runs land-cover classification against a real COG-backed EO source and persists review output", async ({ page }) => {
+  test("runs land-cover classification against a real COG-backed EO source and persists review output @real-model", async ({ page }) => {
     await mockStacAndCog(page);
     await resetWorkbenchState(page);
 
@@ -402,7 +416,7 @@ test.describe("GeoAI land-cover real-data upgrade", () => {
     await expect(reviewFlow).toContainText(/GeoAI Land Cover/i);
   });
 
-  test("runs live spatial SQL against a real seeded map layer and publishes the accepted result", async ({ page }) => {
+  test("runs live spatial SQL against a real seeded map layer and publishes the accepted result @real-model", async ({ page }) => {
     await resetWorkbenchState(page);
     await seedLiveQueryLayer(page);
 
@@ -430,7 +444,7 @@ test.describe("GeoAI land-cover real-data upgrade", () => {
     await expect(reviewFlow).toContainText(/GeoAI Spatial Query/i);
   });
 
-  test("keeps safe live-query rejection explicit without switching to demo data", async ({ page }) => {
+  test("keeps safe live-query rejection explicit without switching to demo data @real-model", async ({ page }) => {
     await resetWorkbenchState(page);
     await seedLiveQueryLayer(page);
 
@@ -451,7 +465,7 @@ test.describe("GeoAI land-cover real-data upgrade", () => {
     await expect(urbanModal.getByTestId("geoai-query-mode")).toContainText(/Live project data/i);
   });
 
-  test("launches a mocked-real object detection run from the workflow surface", async ({ page }) => {
+  test("launches a mocked-real object detection run from the workflow surface @real-model", async ({ page }) => {
     await mockStacAndCog(page);
     await resetWorkbenchState(page);
 
@@ -499,7 +513,7 @@ test.describe("GeoAI land-cover real-data upgrade", () => {
     await expect(reviewFlow).toContainText(/Object Detection/i);
   });
 
-  test("launches a local smoke-model object detection run from the workflow surface", async ({ page }) => {
+  test("launches a local smoke-model object detection run from the workflow surface @real-model", async ({ page }) => {
     await resetWorkbenchState(page);
     await seedObjectDetectionRasterSource(page);
 

@@ -1,50 +1,24 @@
-MFP-14 — e2e-a11y proof (ENVIRONMENT-BLOCKED, substitute captured)
-==================================================================
 
-Command: npm run test:e2e:a11y
-Date:    2026-06-19
+> synapse-ide-urban-analytics-workbench@0.9.0 test:e2e:a11y
+> playwright test e2e/accessibility-audit.spec.ts
 
-RESULT: environment-blocked. Playwright requires Chromium
-chromium_headless_shell-1217 but only chromium-1194 is installed, and
-the browser download is disabled in this sandbox. Captured launcher error:
 
-  Error: browserType.launch: Executable doesn't exist at
-  /opt/pw-browsers/chromium_headless_shell-1217/chrome-headless-shell-linux64/chrome-headless-shell
+Running 12 tests using 1 worker
 
-The MFP-14 e2e assertion IS registered and discovered by the runner:
-  e2e/accessibility-audit.spec.ts:198:3 › Prompt 03 Map Explorer accessibility @a11y ›
-    every opened dialog reports a non-empty accessible name (MFP-14)
-(it fails only on the missing-binary launch, not on assertion logic).
+  ok  1 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › Global Search has axe, Escape, focus-restore, and 320px reflow coverage (8.7s)
+  ok  2 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › AI Settings has axe, Escape, focus-restore, and 320px reflow coverage (6.2s)
+[WebServer] 21:53:07 [vite] (client) [console.warn]  Syntax post-pass armed (debounced).
+[WebServer] 21:53:07 [vite] (client) [console.warn]  VS CODE SYNTAX HIGHLIGHTER WITH ERROR DETECTION READY!
+[WebServer] 21:53:08 [vite] (client) [console.warn]  VS CODE COLORS APPLIED - 8 tokens colored
+  ok  3 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › Unsaved Changes has axe, Escape, focus-restore, and 320px reflow coverage (6.4s)
+  ok  4 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › Map Start has axe, Escape, focus-restore, and 320px reflow coverage (10.5s)
+  ok  5 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › Map Service has axe, Escape, focus-restore, and 320px reflow coverage (15.0s)
+  ok  6 e2e\accessibility-audit.spec.ts:309:3 › Prompt 40 shell focus hardening @a11y › terminal shell controls keep visible focus in default and forced-colors modes (5.3s)
+  ok  7 e2e\accessibility-audit.spec.ts:332:3 › Prompt 40 shell focus hardening @a11y › legacy neural glass cards preserve visible keyboard focus (6.8s)
+  ok  8 e2e\accessibility-audit.spec.ts:352:3 › Prompt 03 Map Explorer accessibility @a11y › map modal exposes skip navigation, keyboard map focus, close control, and no serious axe issues (13.0s)
+  ok  9 e2e\accessibility-audit.spec.ts:379:3 › Prompt 03 Map Explorer accessibility @a11y › every opened dialog reports a non-empty accessible name (MFP-14) (8.2s)
+  ok 10 e2e\accessibility-audit.spec.ts:398:3 › Prompt 55 Map Explorer accessibility matrix @a11y › keyboard-only path reaches import, inspect, QA, and command palette with scoped Escape (12.8s)
+  ok 11 e2e\accessibility-audit.spec.ts:481:3 › Prompt 39 accessibility audit @a11y › critical workbench flows have no serious axe violations (29.2s)
+  ok 12 e2e\accessibility-audit.spec.ts:508:3 › Prompt 39 accessibility audit @a11y › keyboard navigation and focus order remain operable across five major flows (23.3s)
 
-RE-RUN in a browser-capable environment: npm run test:e2e:a11y
-
-SUBSTITUTE EVIDENCE (this run, all green):
-  1) Real-Chromium axe (chromium-1194 via playwright-core + throwaway Vite harness):
-     axe.json in this dir — rule 'aria-dialog-name' PASSES (1 node) for both the
-     WelcomeModal dialog and a MapDialogShell dialog; 0 naming violations; both
-     dialogs expose aria-labelledby -> visible heading, no stray aria-label.
-  2) jsdom unit suites (unit-test.txt): map-accessibility.test.ts (+2 new MapDialogShell
-     name tests) and WelcomeModal.a11y.test.tsx — 40 passed.
-  3) Full map suite (gis gate): 98 files / 935 passed (see SUMMARY.md).
-
------ raw runner tail (binary-missing failures) -----
-    Error: browserType.launch: Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-1217/chrome-headless-shell-linux64/chrome-headless-shell
-    ╔════════════════════════════════════════════════════════════╗
-    ║ Looks like Playwright was just installed or updated.       ║
-    ║ Please run the following command to download new browsers: ║
-    ║                                                            ║
-    ║     npx playwright install                                 ║
-    ║                                                            ║
-    ║ <3 Playwright Team                                         ║
-    ╚════════════════════════════════════════════════════════════╝
-
-    Error Context: test-results/accessibility-audit-Prompt-6e436-ble-across-five-major-flows/error-context.md
-
-  7 failed
-    e2e/accessibility-audit.spec.ts:128:3 › Prompt 40 shell focus hardening @a11y › terminal shell controls keep visible focus in default and forced-colors modes 
-    e2e/accessibility-audit.spec.ts:151:3 › Prompt 40 shell focus hardening @a11y › legacy neural glass cards preserve visible keyboard focus 
-    e2e/accessibility-audit.spec.ts:171:3 › Prompt 03 Map Explorer accessibility @a11y › map modal exposes skip navigation, keyboard map focus, close control, and no serious axe issues 
-    e2e/accessibility-audit.spec.ts:198:3 › Prompt 03 Map Explorer accessibility @a11y › every opened dialog reports a non-empty accessible name (MFP-14) 
-    e2e/accessibility-audit.spec.ts:217:3 › Prompt 55 Map Explorer accessibility matrix @a11y › keyboard-only path reaches import, inspect, QA, and command palette with scoped Escape 
-    e2e/accessibility-audit.spec.ts:300:3 › Prompt 39 accessibility audit @a11y › critical workbench flows have no serious axe violations 
-    e2e/accessibility-audit.spec.ts:327:3 › Prompt 39 accessibility audit @a11y › keyboard navigation and focus order remain operable across five major flows 
+  12 passed (2.5m)

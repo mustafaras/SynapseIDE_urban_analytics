@@ -1,23 +1,24 @@
-MFP-22 — e2e-a11y (release gate) — ENVIRONMENT-BLOCKED, substitute
 
-Command: npm run test:e2e:a11y
-RESULT: environment-blocked — Playwright needs chromium_headless_shell-1217; only
-chromium-1194 is installed and the browser download is disabled in this sandbox
-(same block recorded for MFP-06/13/14/20).
+> synapse-ide-urban-analytics-workbench@0.9.0 test:e2e:a11y
+> playwright test e2e/accessibility-audit.spec.ts
 
-Why this is low-risk for MFP-22: the change is publish-time <head> metadata only
-(title, favicon link, description/theme-color/og:*/twitter:* meta) + package.json
-name/version. It adds no role/aria/tabindex/focus behaviour and touches no component,
-so it cannot regress the Map Explorer a11y audit. The runtime accessibility tree is
-unchanged (document.title was already BRAND.full via MFP-21).
 
-Substitute evidence (this run):
-- npm run build => exit 0 (build.txt). Vite processed index.html as the entry; the
-  built dist/index.html carries <title>Synapse IDE — GIS &amp; Urban Analytics
-  Workbench</title>, /favicon.svg, /og-image.png, theme-color, twitter:card; NO
-  "Coder App" / "/vite.svg". dist/favicon.svg + dist/og-image.png shipped.
-- Static <title> (index.html) === runtime document.title (App.tsx -> BRAND.full) =>
-  no tab-name flicker on boot.
-- npm run typecheck + lint:errors clean.
+Running 12 tests using 1 worker
 
-RE-RUN in a browser-capable env: npm run test:e2e:a11y (expected unaffected).
+  ok  1 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › Global Search has axe, Escape, focus-restore, and 320px reflow coverage (8.7s)
+  ok  2 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › AI Settings has axe, Escape, focus-restore, and 320px reflow coverage (6.2s)
+[WebServer] 21:53:07 [vite] (client) [console.warn]  Syntax post-pass armed (debounced).
+[WebServer] 21:53:07 [vite] (client) [console.warn]  VS CODE SYNTAX HIGHLIGHTER WITH ERROR DETECTION READY!
+[WebServer] 21:53:08 [vite] (client) [console.warn]  VS CODE COLORS APPLIED - 8 tokens colored
+  ok  3 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › Unsaved Changes has axe, Escape, focus-restore, and 320px reflow coverage (6.4s)
+  ok  4 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › Map Start has axe, Escape, focus-restore, and 320px reflow coverage (10.5s)
+  ok  5 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › Map Service has axe, Escape, focus-restore, and 320px reflow coverage (15.0s)
+  ok  6 e2e\accessibility-audit.spec.ts:309:3 › Prompt 40 shell focus hardening @a11y › terminal shell controls keep visible focus in default and forced-colors modes (5.3s)
+  ok  7 e2e\accessibility-audit.spec.ts:332:3 › Prompt 40 shell focus hardening @a11y › legacy neural glass cards preserve visible keyboard focus (6.8s)
+  ok  8 e2e\accessibility-audit.spec.ts:352:3 › Prompt 03 Map Explorer accessibility @a11y › map modal exposes skip navigation, keyboard map focus, close control, and no serious axe issues (13.0s)
+  ok  9 e2e\accessibility-audit.spec.ts:379:3 › Prompt 03 Map Explorer accessibility @a11y › every opened dialog reports a non-empty accessible name (MFP-14) (8.2s)
+  ok 10 e2e\accessibility-audit.spec.ts:398:3 › Prompt 55 Map Explorer accessibility matrix @a11y › keyboard-only path reaches import, inspect, QA, and command palette with scoped Escape (12.8s)
+  ok 11 e2e\accessibility-audit.spec.ts:481:3 › Prompt 39 accessibility audit @a11y › critical workbench flows have no serious axe violations (29.2s)
+  ok 12 e2e\accessibility-audit.spec.ts:508:3 › Prompt 39 accessibility audit @a11y › keyboard navigation and focus order remain operable across five major flows (23.3s)
+
+  12 passed (2.5m)

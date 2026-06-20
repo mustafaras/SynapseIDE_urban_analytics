@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { openMapCommand } from "./helpers/mapExplorer";
 import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
 /**
@@ -46,18 +47,7 @@ async function seedProjectedLayer(page: Page): Promise<void> {
 }
 
 async function openProcessingToolbox(page: Page, mapExplorer: ReturnType<Page["getByRole"]>): Promise<void> {
-  const directButton = mapExplorer.getByRole("button", { name: /processing toolbox/i }).first();
-  if (await directButton.isVisible({ timeout: 1_000 }).catch(() => false)) {
-    await triggerDomClick(directButton);
-    return;
-  }
-  // Fall back to the advanced commands overflow menu.
-  await triggerDomClick(
-    mapExplorer.getByRole("button", { name: "Scientific QA, 3D sync, density, and command controls" }),
-  );
-  await triggerDomClick(
-    page.getByRole("menu", { name: "Advanced commands" }).getByRole("menuitem", { name: /processing toolbox/i }),
-  );
+  await openMapCommand(page, mapExplorer, /processing toolbox/i, /processing toolbox/i);
 }
 
 test.describe("Map Explorer processing toolbox", () => {
@@ -94,7 +84,7 @@ test.describe("Map Explorer processing toolbox", () => {
     await expect(result).toHaveAttribute("data-run-status", "applied");
     await expect(toolbox.getByTestId("processing-run-output-layer")).toContainText("Buffer");
     await expect(toolbox.getByTestId("processing-run-manifest")).toContainText("manifest-processing-buffer");
-    // The derived buffer layer is added to the map's layer list.
-    await expect(page.getByRole("list", { name: "Layer list" })).toContainText("Buffer · E2E Projected Parcels");
+    // The derived buffer layer is added and selected in the canonical layer inspector.
+    await expect(page.getByTestId("map-layer-inspector")).toContainText("Buffer · E2E Projected Parcels");
   });
 });
